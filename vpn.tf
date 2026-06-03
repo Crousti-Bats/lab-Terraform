@@ -57,7 +57,7 @@ resource "azurerm_virtual_network_gateway_connection" "onprem" {
 
     # Phase 2 (IPsec / ESP)
     ipsec_encryption = "AES256"
-    ipsec_integrity  = "SHA256"
+    ipsec_integrity  = "SHA384"
     pfs_group        = "ECP384" # PFS group 20
     sa_lifetime      = 27000
   }

@@ -1,25 +1,38 @@
 # Local .terraform directories
 **/.terraform/*
 
-# State files (may contain secrets)
+# .tfstate files
 *.tfstate
 *.tfstate.*
+*.tfstate.backup
 
-# Crash logs
+# Crash log files
 crash.log
 crash.*.log
 
-# Variable files with secrets (keep .example committed)
+# Variable files contenant des secrets
 *.tfvars
 *.tfvars.json
 !*.tfvars.example
 
-# CLI config / overrides
+# Override files
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Plan output files
+*.tfplan
+*.plan
+
+# Lock file: a commiter en general, decommenter pour l'ignorer
+# .terraform.lock.hcl
+
+# CLI config
 .terraformrc
 terraform.rc
 
-# Note: .terraform.lock.hcl SHOULD be committed (not ignored).
+# Cles et secrets divers
+*.pem
+*.key
+.env
