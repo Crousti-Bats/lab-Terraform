@@ -18,7 +18,7 @@ variable "location" {
 variable "resource_group_name" {
   type        = string
   description = "Nom du resource group."
-  default     = "rg-lab-terraform"
+  default     = "rg_lab_agi"
 }
 
 variable "tags" {
@@ -134,13 +134,15 @@ variable "opnsense_image" {
     offer     = string
     sku       = string
     version   = string
+    plan      = string
   })
-  description = "Reference de l'image Marketplace OPNsense. A verifier via 'az vm image list'."
+  description = "Reference Marketplace OPNsense (Deciso). Valeurs exactes via 'az vm image show'."
   default = {
-    publisher = "thefreebsdfoundation"
-    offer     = "freebsd-14_2"
-    sku       = "14_2-release-amd64-gen2-zfs"
-    version   = "latest"
+    publisher = "decisosalesbv"
+    offer     = "opnsense"
+    sku       = "opnsense-be-2025"
+    version   = "26.1.6"
+    plan      = "opnsense-be-2025"
   }
 }
 
@@ -152,6 +154,12 @@ variable "opnsense_vm_size" {
 variable "spoke_vm_size" {
   type    = string
   default = "Standard_B1s"
+}
+
+variable "accept_marketplace_terms" {
+  type        = bool
+  description = "Mettre a true si les termes Marketplace OPNsense ne sont PAS deja acceptes sur la souscription."
+  default     = false
 }
 
 # --- Provider OPNsense (config post-deploiement) ---

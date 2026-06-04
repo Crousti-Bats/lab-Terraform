@@ -3,7 +3,7 @@
 subscription_id     = "00000000-0000-0000-0000-000000000000"
 prefix              = "lab"
 location            = "westeurope"
-resource_group_name = "rg-lab-terraform"
+resource_group_name = "rg_lab_agi"
 
 # VPN IPsec
 fortigate_public_ip  = "195.46.235.220"
@@ -16,12 +16,13 @@ opnsense_admin_password = "CHANGE_ME_Opn_Pass123!"
 spoke_vm_admin_username = "azureuser"
 spoke_vm_admin_password = "CHANGE_ME_Spoke_Pass123!"
 
-# Image Marketplace OPNsense - A VERIFIER (voir README, section Image OPNsense)
+# Image Marketplace OPNsense (Deciso) - valeurs reelles (cf. az vm image list)
 # opnsense_image = {
-#   publisher = "..."
-#   offer     = "..."
-#   sku       = "..."
-#   version   = "latest"
+#   publisher = "decisosalesbv"
+#   offer     = "opnsense"
+#   sku       = "opnsense-be-2025"
+#   version   = "26.1.6"
+#   plan      = "opnsense-be-2025"
 # }
 
 # Restreindre l'acces MGMT a ton IP publique (recommande)

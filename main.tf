@@ -1,118 +1,144 @@
-resource "azurerm_resource_group" "this" {
-  name     = var.resource_group_name
-  location = var.location
-  tags     = var.tags
+resource "azurerm_marketplace_agreement" "opnsense" {
+  count     = var.accept_marketplace_terms ? 1 : 0
+  publisher = var.image.publisher
+  offer     = var.image.offer
+  plan      = var.image.plan
 }
 
-module "network" {
-  source = "./modules/network"
+resource "azurerm_public_ip" "wan" {
+  name                = "${var.prefix}-pip-opn-wan"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  tags                = var.tags
+}
 
-  prefix              = var.prefix
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
+resource "azurerm_public_ip" "mgmt" {
+  name                = "${var.prefix}-pip-opn-mgmt"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  tags                = var.tags
+}
+
+resource "azurerm_network_interface" "wan" {
+  name                  = "${var.prefix}-nic-opn-wan"
+  location              = var.location
+  resource_group_name   = var.resource_group_name
+  ip_forwarding_enabled = true
+  tags                  = var.tags
+
+  ip_configuration {
+    name                          = "ipconfig-wan"
+    subnet_id                     = var.wan_subnet_id
+    private_ip_address_allocation = "Static"
+    private_ip_address            = var.wan_ip
+    public_ip_address_id          = azurerm_public_ip.wan.id
+  }
+}
+
+resource "azurerm_network_interface" "lan" {
+  name                  = "${var.prefix}-nic-opn-lan"
+  location              = var.location
+  resource_group_name   = var.resource_group_name
+  ip_forwarding_enabled = true
+  tags                  = var.tags
+
+  ip_configuration {
+    name                          = "ipconfig-lan"
+    subnet_id                     = var.lan_subnet_id
+    private_ip_address_allocation = "Static"
+    private_ip_address            = var.lan_ip
+  }
+}
+
+resource "azurerm_network_interface" "mgmt" {
+  name                  = "${var.prefix}-nic-opn-mgmt"
+  location              = var.location
+  resource_group_name   = var.resource_group_name
+  ip_forwarding_enabled = true
+  tags                  = var.tags
+
+  ip_configuration {
+    name                          = "ipconfig-mgmt"
+    subnet_id                     = var.mgmt_subnet_id
+    private_ip_address_allocation = "Static"
+    private_ip_address            = var.mgmt_ip
+    public_ip_address_id          = azurerm_public_ip.mgmt.id
+  }
+}
+
+resource "azurerm_network_security_group" "mgmt" {
+  name                = "${var.prefix}-nsg-opn-mgmt"
+  location            = var.location
+  resource_group_name = var.resource_group_name
   tags                = var.tags
 
-  hub_vnet_cidr       = var.hub_vnet_cidr
-  spoke_vnet_cidr     = var.spoke_vnet_cidr
-  subnet_gateway_cidr = var.subnet_gateway_cidr
-  subnet_lan_cidr     = var.subnet_lan_cidr
-  subnet_wan_cidr     = var.subnet_wan_cidr
-  subnet_mgmt_cidr    = var.subnet_mgmt_cidr
-  subnet_test_cidr    = var.subnet_test_cidr
+  security_rule {
+    name                       = "allow-https-mgmt"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = var.mgmt_allowed_source
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow-ssh-mgmt"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = var.mgmt_allowed_source
+    destination_address_prefix = "*"
+  }
 }
 
-module "vpn" {
-  source = "./modules/vpn"
-
-  prefix              = var.prefix
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  tags                = var.tags
-
-  gateway_subnet_id    = module.network.gateway_subnet_id
-  fortigate_public_ip  = var.fortigate_public_ip
-  onprem_address_space = var.onprem_address_space
-  vpn_psk              = var.vpn_psk
+resource "azurerm_network_interface_security_group_association" "mgmt" {
+  network_interface_id      = azurerm_network_interface.mgmt.id
+  network_security_group_id = azurerm_network_security_group.mgmt.id
 }
 
-resource "azurerm_virtual_network_peering" "hub_to_spoke" {
-  name                         = "peer-hub-to-spoke"
-  resource_group_name          = azurerm_resource_group.this.name
-  virtual_network_name         = module.network.hub_vnet_name
-  remote_virtual_network_id    = module.network.spoke_vnet_id
-  allow_forwarded_traffic      = true
-  allow_gateway_transit        = true
-  allow_virtual_network_access = true
+resource "azurerm_linux_virtual_machine" "opnsense" {
+  name                            = "${var.prefix}-vm-opnsense"
+  location                        = var.location
+  resource_group_name             = var.resource_group_name
+  size                            = var.vm_size
+  admin_username                  = var.admin_username
+  admin_password                  = var.admin_password
+  disable_password_authentication = false
+  tags                            = var.tags
 
-  depends_on = [module.vpn]
-}
+  network_interface_ids = [
+    azurerm_network_interface.wan.id,
+    azurerm_network_interface.lan.id,
+    azurerm_network_interface.mgmt.id,
+  ]
 
-resource "azurerm_virtual_network_peering" "spoke_to_hub" {
-  name                         = "peer-spoke-to-hub"
-  resource_group_name          = azurerm_resource_group.this.name
-  virtual_network_name         = module.network.spoke_vnet_name
-  remote_virtual_network_id    = module.network.hub_vnet_id
-  allow_forwarded_traffic      = true
-  use_remote_gateways          = true
-  allow_virtual_network_access = true
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
 
-  depends_on = [module.vpn, azurerm_virtual_network_peering.hub_to_spoke]
-}
+  source_image_reference {
+    publisher = var.image.publisher
+    offer     = var.image.offer
+    sku       = var.image.sku
+    version   = var.image.version
+  }
 
-module "opnsense" {
-  source = "./modules/opnsense"
+  plan {
+    publisher = var.image.publisher
+    product   = var.image.offer
+    name      = var.image.plan
+  }
 
-  prefix              = var.prefix
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  tags                = var.tags
-
-  wan_subnet_id  = module.network.wan_subnet_id
-  lan_subnet_id  = module.network.lan_subnet_id
-  mgmt_subnet_id = module.network.mgmt_subnet_id
-
-  wan_ip  = var.opnsense_wan_ip
-  lan_ip  = var.opnsense_lan_ip
-  mgmt_ip = var.opnsense_mgmt_ip
-
-  admin_username      = var.opnsense_admin_username
-  admin_password      = var.opnsense_admin_password
-  vm_size             = var.opnsense_vm_size
-  image               = var.opnsense_image
-  mgmt_allowed_source = var.mgmt_allowed_source
-}
-
-module "spoke_vm" {
-  source = "./modules/spoke-vm"
-
-  prefix              = var.prefix
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  tags                = var.tags
-
-  subnet_id      = module.network.test_subnet_id
-  vm_size        = var.spoke_vm_size
-  admin_username = var.spoke_vm_admin_username
-  admin_password = var.spoke_vm_admin_password
-}
-
-module "routing" {
-  source = "./modules/routing"
-
-  prefix              = var.prefix
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  tags                = var.tags
-
-  test_subnet_id       = module.network.test_subnet_id
-  onprem_address_space = var.onprem_address_space
-  opnsense_lan_ip      = var.opnsense_lan_ip
-}
-
-module "opnsense_config" {
-  source = "./modules/opnsense-config"
-  count  = var.enable_opnsense_config ? 1 : 0
-
-  spoke_cidr           = var.spoke_vnet_cidr
-  onprem_address_space = var.onprem_address_space
+  depends_on = [azurerm_marketplace_agreement.opnsense]
 }
