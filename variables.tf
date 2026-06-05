@@ -4,34 +4,28 @@ variable "subscription_id" {
 }
 
 variable "prefix" {
-  type        = string
-  description = "Prefixe applique a toutes les ressources."
-  default     = "lab"
+  type    = string
+  default = "lab"
 }
 
 variable "location" {
-  type        = string
-  description = "Region Azure."
-  default     = "westeurope"
+  type    = string
+  default = "westeurope"
 }
 
 variable "resource_group_name" {
-  type        = string
-  description = "Nom du resource group."
-  default     = "rg_lab_agi"
+  type    = string
+  default = "rg_lab_agi"
 }
 
 variable "tags" {
-  type        = map(string)
-  description = "Tags communs."
+  type = map(string)
   default = {
     project     = "lab-terraform"
     environment = "lab"
     managed_by  = "terraform"
   }
 }
-
-# --- Adressage ---
 
 variable "hub_vnet_cidr" {
   type    = string
@@ -68,7 +62,6 @@ variable "subnet_test_cidr" {
   default = "172.16.104.0/27"
 }
 
-# IPs statiques des interfaces OPNsense (doivent appartenir aux subnets ci-dessus)
 variable "opnsense_wan_ip" {
   type    = string
   default = "172.16.100.84"
@@ -84,27 +77,20 @@ variable "opnsense_mgmt_ip" {
   default = "172.16.100.100"
 }
 
-# --- VPN / On-prem (Fortigate) ---
-
 variable "fortigate_public_ip" {
-  type        = string
-  description = "IP publique du Fortigate on-prem."
-  default     = "195.46.235.220"
+  type    = string
+  default = "195.46.235.220"
 }
 
 variable "onprem_address_space" {
-  type        = list(string)
-  description = "Reseaux LAN derriere le Fortigate."
-  default     = ["10.118.255.0/24"]
+  type    = list(string)
+  default = ["10.118.255.0/24"]
 }
 
 variable "vpn_psk" {
-  type        = string
-  description = "Cle pre-partagee (PSK) du tunnel IPsec IKEv2."
-  sensitive   = true
+  type      = string
+  sensitive = true
 }
-
-# --- Identifiants VM ---
 
 variable "opnsense_admin_username" {
   type    = string
@@ -126,8 +112,6 @@ variable "spoke_vm_admin_password" {
   sensitive = true
 }
 
-# --- Image Marketplace OPNsense (a verifier, voir README) ---
-
 variable "opnsense_image" {
   type = object({
     publisher = string
@@ -136,7 +120,6 @@ variable "opnsense_image" {
     version   = string
     plan      = string
   })
-  description = "Reference Marketplace OPNsense (Deciso). Valeurs exactes via 'az vm image show'."
   default = {
     publisher = "decisosalesbv"
     offer     = "opnsense"
@@ -157,17 +140,13 @@ variable "spoke_vm_size" {
 }
 
 variable "accept_marketplace_terms" {
-  type        = bool
-  description = "Mettre a true si les termes Marketplace OPNsense ne sont PAS deja acceptes sur la souscription."
-  default     = false
+  type    = bool
+  default = false
 }
 
-# --- Provider OPNsense (config post-deploiement) ---
-
 variable "opnsense_url" {
-  type        = string
-  description = "URL de l'API OPNsense (ex: https://<ip-mgmt-publique>)."
-  default     = ""
+  type    = string
+  default = ""
 }
 
 variable "opnsense_api_key" {
@@ -183,13 +162,17 @@ variable "opnsense_api_secret" {
 }
 
 variable "enable_opnsense_config" {
-  type        = bool
-  description = "Active la configuration OPNsense via le provider (phase 2)."
-  default     = false
+  type    = bool
+  default = false
 }
 
-# Adresse de l'admin autorise a joindre le MGMT (ton IP publique). Laisser vide = ouvert.
 variable "mgmt_allowed_source" {
   type    = string
   default = "*"
+}
+
+variable "allowed_ssh_source" {
+  type        = string
+  description = "IP autorisee en SSH sur la VM Ubuntu spoke."
+  default     = "*"
 }

@@ -2,10 +2,9 @@
 
 subscription_id     = "00000000-0000-0000-0000-000000000000"
 prefix              = "lab"
-location            = "westeurope"
 resource_group_name = "rg_lab_agi"
 
-# VPN IPsec
+# VPN IPsec (PSK identique cote Fortigate)
 fortigate_public_ip  = "195.46.235.220"
 onprem_address_space = ["10.118.255.0/24"]
 vpn_psk              = "CHANGE_ME_strong_preshared_key"
@@ -16,19 +15,11 @@ opnsense_admin_password = "CHANGE_ME_Opn_Pass123!"
 spoke_vm_admin_username = "azureuser"
 spoke_vm_admin_password = "CHANGE_ME_Spoke_Pass123!"
 
-# Image Marketplace OPNsense (Deciso) - valeurs reelles (cf. az vm image list)
-# opnsense_image = {
-#   publisher = "decisosalesbv"
-#   offer     = "opnsense"
-#   sku       = "opnsense-be-2025"
-#   version   = "26.1.6"
-#   plan      = "opnsense-be-2025"
-# }
-
-# Restreindre l'acces MGMT a ton IP publique (recommande)
+# Restreindre les acces (recommande)
 # mgmt_allowed_source = "X.X.X.X/32"
+# allowed_ssh_source  = "X.X.X.X/32"
 
-# --- Phase 2 uniquement (config OPNsense via API) ---
+# --- Phase 2 (config OPNsense via API) ---
 enable_opnsense_config = false
 opnsense_url           = ""
 opnsense_api_key       = ""

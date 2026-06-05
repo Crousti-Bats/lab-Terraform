@@ -1,0 +1,38 @@
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Variable files contenant des secrets
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Plan output files
+*.tfplan
+*.plan
+
+# Lock file: a commiter en general, decommenter pour l'ignorer
+# .terraform.lock.hcl
+
+# CLI config
+.terraformrc
+terraform.rc
+
+# Cles et secrets divers
+*.pem
+*.key
+.env

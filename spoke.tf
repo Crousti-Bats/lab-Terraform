@@ -1,50 +1,26 @@
-# ---------- Spoke VNet & subnet ----------
 resource "azurerm_virtual_network" "spoke" {
   name                = "vnet-${var.prefix}-spoke-test"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  address_space       = [local.spoke_address_space]
+  resource_group_name = data.azurerm_resource_group.main.name
+  location            = data.azurerm_resource_group.main.location
+  address_space       = [var.spoke_vnet_cidr]
   tags                = var.tags
 }
 
 resource "azurerm_subnet" "spoke_test" {
   name                 = "snet-test"
-  resource_group_name  = azurerm_resource_group.main.name
+  resource_group_name  = data.azurerm_resource_group.main.name
   virtual_network_name = azurerm_virtual_network.spoke.name
-  address_prefixes     = [local.spoke_subnet]
+  address_prefixes     = [var.subnet_test_cidr]
 }
 
-# ---------- Bidirectional peering ----------
-resource "azurerm_virtual_network_peering" "hub_to_spoke" {
-  name                         = "peer-hub-to-spoke"
-  resource_group_name          = azurerm_resource_group.main.name
-  virtual_network_name         = azurerm_virtual_network.hub.name
-  remote_virtual_network_id    = azurerm_virtual_network.spoke.id
-  allow_virtual_network_access = true
-  allow_forwarded_traffic      = true
-  allow_gateway_transit        = true
-}
-
-resource "azurerm_virtual_network_peering" "spoke_to_hub" {
-  name                         = "peer-spoke-to-hub"
-  resource_group_name          = azurerm_resource_group.main.name
-  virtual_network_name         = azurerm_virtual_network.spoke.name
-  remote_virtual_network_id    = azurerm_virtual_network.hub.id
-  allow_virtual_network_access = true
-  allow_forwarded_traffic      = true
-  use_remote_gateways          = true
-  depends_on                   = [azurerm_virtual_network_gateway.hub]
-}
-
-# ---------- Ubuntu VM ----------
 resource "azurerm_network_security_group" "spoke" {
   name                = "nsg-${var.prefix}-spoke-test"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
+  resource_group_name = data.azurerm_resource_group.main.name
+  location            = data.azurerm_resource_group.main.location
   tags                = var.tags
 
   security_rule {
-    name                       = "Allow-SSH"
+    name                       = "allow-ssh"
     priority                   = 100
     direction                  = "Inbound"
     access                     = "Allow"
@@ -56,7 +32,7 @@ resource "azurerm_network_security_group" "spoke" {
   }
 
   security_rule {
-    name                       = "Allow-ICMP-OnPrem"
+    name                       = "allow-icmp-onprem"
     priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
@@ -75,8 +51,8 @@ resource "azurerm_subnet_network_security_group_association" "spoke" {
 
 resource "azurerm_public_ip" "ubuntu" {
   name                = "pip-${var.prefix}-ubuntu"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
+  resource_group_name = data.azurerm_resource_group.main.name
+  location            = data.azurerm_resource_group.main.location
   allocation_method   = "Static"
   sku                 = "Standard"
   tags                = var.tags
@@ -84,8 +60,8 @@ resource "azurerm_public_ip" "ubuntu" {
 
 resource "azurerm_network_interface" "ubuntu" {
   name                = "nic-${var.prefix}-ubuntu"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
+  resource_group_name = data.azurerm_resource_group.main.name
+  location            = data.azurerm_resource_group.main.location
   tags                = var.tags
 
   ip_configuration {
@@ -99,13 +75,14 @@ resource "azurerm_network_interface" "ubuntu" {
 
 resource "azurerm_linux_virtual_machine" "ubuntu" {
   name                            = "vm-${var.prefix}-ubuntu-test"
-  resource_group_name             = azurerm_resource_group.main.name
-  location                        = azurerm_resource_group.main.location
-  size                            = "Standard_B1s"
-  admin_username                  = var.linux_admin_username
-  admin_password                  = var.linux_admin_password
+  resource_group_name             = data.azurerm_resource_group.main.name
+  location                        = data.azurerm_resource_group.main.location
+  size                            = var.spoke_vm_size
+  admin_username                  = var.spoke_vm_admin_username
+  admin_password                  = var.spoke_vm_admin_password
   disable_password_authentication = false
   network_interface_ids           = [azurerm_network_interface.ubuntu.id]
+  tags                            = var.tags
 
   os_disk {
     caching              = "ReadWrite"
@@ -118,6 +95,4 @@ resource "azurerm_linux_virtual_machine" "ubuntu" {
     sku       = "server"
     version   = "latest"
   }
-
-  tags = var.tags
 }
